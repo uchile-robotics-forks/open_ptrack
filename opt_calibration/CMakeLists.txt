@@ -91,12 +91,3 @@ target_link_libraries(opt_define_reference_frame
   ${PCL_LIBRARIES}
   ${OpenCV_LIBS}
 )
-
-add_executable(network_assessment
-  apps/network_assessment.cpp
-)
-
-target_link_libraries(network_assessment
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-)

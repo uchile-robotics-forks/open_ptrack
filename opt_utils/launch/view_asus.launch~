@@ -1,0 +1,77 @@
+<launch>
+
+
+	<!-- Launch ground based people detection node -->
+	<node pkg="detection" type="ground_based_people_detector" name="ground_based_people_detector" output="screen" required="true">
+    <rosparam command="load" file="$(find detection)/conf/ground_based_people_detector_kinect1.yaml" /> 
+    <param name="classifier_file" value="$(find detection)/data/HogSvmPCL.yaml"/>	
+		<param name="ground_estimation_mode" value="3" />
+    <param name="pointcloud_topic" value="/camera/depth/points"/>
+		<param name="camera_info_topic" value="/camera/rgb/camera_info" />
+    <param name="rate" value="60.0"/>  
+		<param name="lock_ground" value="true" />
+		<param name="background_subtraction" value="false" />
+  </node>
+
+
+	<!-- Launch HaarDispAda Node -->
+	<node name="HaarDispAdaNode" pkg="detection" type="HaarDispAda174" output="screen">	
+     <rosparam command="load" file="$(find detection)/conf/haar_disp_ada_detector.yaml" /> 
+     <remap from="Color_Image" to="/camera/rgb/image_raw"/>	
+     <remap from="Disparity_Image" to="/camera/depth/disparity"/>
+     <remap from="input_detections" to="/ground_based_people_detector/detections"/>
+     <param name="classifier_file" value="$(find detection)/data/HaarDispAda.xml"/>
+		<param name="use_disparity" value="true" />
+   </node>  
+
+
+	<!-- display the rois GroundPlane 
+  <node pkg="opt_utils" type="roi_viewer" name="PeopleDetectionViewer" output="screen">
+    <param name="mode" type="string" value="roi_display"/> 
+    <param name="label" type="int" value="1" />
+    <param name="show_confidence" type="bool" value="true" />
+    <remap from ="input_image" to="camera/rgb/image_raw"/>
+	<remap from ="input_detections" to="ground_based_people_detector/detections"/>  
+  </node>
+	-->
+
+	<!-- display the rois HaarDispAda -->
+   <node pkg="opt_utils" type="roi_viewer" name="HaarDispAdaViewer" >
+     <param name="mode" type="string" value="roi_display"/> 
+     <param name="label" type="int" value="1" />
+     <param name="show_confidence" type="bool" value="true" />
+	 <remap from ="input_image" to="HaarDispAdaColorImage"/>
+	 <remap from ="input_detections" to="detector/detections"/>  
+   </node>
+
+
+	<!-- Display depth_image 
+	<node pkg="rqt_image_view" type="rqt_image_view" name="rqt_depth_view">
+	<remap from="image" to="camera/depth" />
+	</node>-->
+
+	<!-- Launch the tracking node -->
+	<arg name="input_topic" value="/detector/detections" />      
+  <node pkg="tracking" type="tracker" name="tracker_node" output="screen">
+    <remap from="~input" to="$(arg input_topic)" />
+    <rosparam command="load" file="$(find tracking)/conf/tracker.yaml" /> 
+    <rosparam command="load" file="$(find detection)/conf/haar_disp_ada_detector.yaml" /> 
+  </node> 
+
+	<!-- Re-publishing at fixed rate / filtering node -->
+  <node pkg="tracking" type="moving_average_filter" name="moving_average_filter_node" output="screen">
+    <remap from="~input" to="/tracker/tracks" />
+    <remap from="~output" to="/tracker/tracks_smoothed" />
+    <remap from="~markers_array" to="/tracker/markers_array_smoothed" />
+    <remap from="~history" to="/tracker/history_smoothed" />
+    <rosparam command="load" file="$(find tracking)/conf/moving_average_filter.yaml" />
+  </node> 
+
+
+	<!-- ROS visualizer 
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find tracking)/conf/tracking.rviz" /> 
+	-->
+	
+
+
+</launch>

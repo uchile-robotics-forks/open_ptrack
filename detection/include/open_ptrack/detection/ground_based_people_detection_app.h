@@ -329,6 +329,7 @@ namespace open_ptrack
         bool
         compute (std::vector<pcl::people::PersonCluster<PointT> >& clusters);
 
+
       protected:
         /** \brief sampling factor used to downsample the point cloud */
         int sampling_factor_;

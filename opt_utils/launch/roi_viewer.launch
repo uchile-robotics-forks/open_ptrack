@@ -4,8 +4,8 @@
   <param name="mode" type="string" value="roi_display"/> -->
   <!-- Note: label should be updated to list of values -->
   <param name="label" type="int" value="1" />
-  <remap from ="input_image" to="output_image"/>
-  <remap from ="input_rois" to="output_rois1"/>  
+  <remap from ="input_image" to="/camera/rgb/image_raw"/>
+  <remap from ="input_rois" to="/ground_based_people_detector/detections"/>  
   </node>
 </launch>
 

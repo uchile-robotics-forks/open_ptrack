@@ -83,6 +83,8 @@ using namespace cv;
 cv::Scalar darkBlue(130,0,0);
 cv::Scalar white(255,255,255);
 
+ros::Publisher pub_image; //EDU
+
 class roiViewerNode
 {
   private:
@@ -161,7 +163,7 @@ class roiViewerNode
       std::string filename = image_msg->header.frame_id.c_str();
       std::string imgName = filename.substr(filename.find_last_of("/")+1);
 
-      ROS_INFO("roiViewer Callback called for image: %s", imgName.c_str());
+      //ROS_INFO("roiViewer Callback called for image: %s", imgName.c_str());
 
       //Use CV Bridge to convert images
       cv_bridge::CvImagePtr cv_ptr;
@@ -217,9 +219,12 @@ class roiViewerNode
           cv::putText(cv_ptr->image, conf_ss.str(), cv::Point(x, y), cv::FONT_HERSHEY_SIMPLEX, 0.5 * scale_factor, white, 1.7, CV_AA);
         }
       }
-
+			Mat imagen;//EDU
+			(cv_ptr->image).copyTo(imagen);//EDU
+			sensor_msgs::ImagePtr msg2 = cv_bridge::CvImage(std_msgs::Header(), "bgr8", imagen).toImageMsg();//EDU
       // Display the cv image
       cv::imshow("Detections",cv_ptr->image);
+			cv::waitKey(10);
     }
 
     ~roiViewerNode()
@@ -232,7 +237,12 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "roiViewer");
   ros::NodeHandle n;
   roiViewerNode roiViewerNode(n);
+
+	pub_image = n.advertise<Image>("detecciones", 30); //EDU	
+
   ros::spin();
+
+	destroyWindow("Detections");
 
   return 0;
 }

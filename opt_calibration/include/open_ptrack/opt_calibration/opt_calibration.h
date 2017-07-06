@@ -193,11 +193,6 @@ public:
 
   OPTCalibration(const ros::NodeHandle & node_handle);
 
-  inline cb::BaseObject::ConstPtr world() const
-  {
-    return world_;
-  }
-
   inline void setCheckerboard(const cb::Checkerboard::Ptr & checkerboard)
   {
     checkerboard_ = checkerboard;

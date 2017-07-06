@@ -58,8 +58,13 @@ target_link_libraries(ground_based_people_detector_sr ${PROJECT_NAME} ${catkin_L
 add_library(haar_disp_ada src/haardispada.cpp apps/haardispada_nodelet.cpp)
 target_link_libraries(haar_disp_ada ${catkin_LIBRARIES})
 
-add_executable(HaarDispAda174 apps/haardispada_node.cpp)
-target_link_libraries(HaarDispAda174 haar_disp_ada ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS} boost_system boost_signals)
+add_executable(HaarDispAda1744 apps/haardispada_node.cpp)
+target_link_libraries(HaarDispAda1744 haar_disp_ada ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS} boost_system boost_signals)
 
 add_executable(HaarDispAda174_sr apps/haardispada_node_sr.cpp)
 target_link_libraries(HaarDispAda174_sr haar_disp_ada ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS} boost_system boost_signals)
+
+
+
+add_executable(save_roi apps/save_roi.cpp)
+target_link_libraries(save_roi ${catkin_LIBRARIES})

@@ -294,7 +294,7 @@ detection_cb(const opt_msgs::DetectionArray::ConstPtr& msg)
         new_confidence = (new_confidence - (-3)) / 3 * 4 + 2;
         detections_vector[i].setConfidence(new_confidence);
 
-        //std::cout << detections_vector[i].getConfidence() << std::endl;
+        //std::cout << "confid " << detections_vector[i].getConfidence() << std::endl;
       }
     }
 
@@ -342,7 +342,8 @@ detection_cb(const opt_msgs::DetectionArray::ConstPtr& msg)
 //          std::cout << registration_matrix << std::endl;
 //          std::cout << "old_centroid: " << old_centroid.transpose() << std::endl;
           Eigen::Vector4d old_centroid_homogeneous(old_centroid(0), old_centroid(1), old_centroid(2), 1.0);
-          Eigen::Vector4d refined_centroid = registration_matrix * old_centroid_homogeneous;
+          //Eigen::Vector4d refined_centroid = registration_matrix * old_centroid_homogeneous;
+          Eigen::Vector4d refined_centroid = old_centroid_homogeneous; //edu
           detections_vector[i].setWorldCentroid(Eigen::Vector3d(refined_centroid(0), refined_centroid(1), refined_centroid(2)));
 
           Eigen::Vector3d refined_centroid2 = detections_vector[i].getWorldCentroid();
@@ -440,7 +441,7 @@ detection_cb(const opt_msgs::DetectionArray::ConstPtr& msg)
           color_map.insert(std::pair<std::string, int> (frame_id, color_index));
 
           // Plot legend with camera names and colors:
-          plotCameraLegend (color_map);
+          //plotCameraLegend (color_map); //edu
         }
         for (unsigned int i = 0; i < detections_vector.size(); i++)
         {

@@ -1,0 +1,49 @@
+<launch>
+
+	<arg name="dataset" default="VD1" />
+	
+
+	<!-- Launch ground based people detection node -->
+	<node pkg="detection" type="ground_based_people_detector" name="ground_based_people_detector" output="screen" required="true">
+    <rosparam command="load" file="$(find detection)/conf/ground_based_people_detector_kinect1.yaml" /> 
+    <param name="classifier_file" value="$(find detection)/data/HogSvmPCL.yaml"/>	
+    <param name="pointcloud_topic" value="/camera/depth/points"/>
+    <param name="rate" value="60.0"/>  
+		<param name="ground_estimation_mode" value="1" />
+    <remap from ="/camera/rgb/camera_info" to ="/camera/depth/camera_info" />
+  </node>
+
+	<!-- Launch HaarDispAda Node -->
+	<node name="HaarDispAdaNode" pkg="detection" type="HaarDispAda174" output="screen">	
+     <rosparam command="load" file="$(find detection)/conf/haar_disp_ada_detector.yaml" /> 
+     <remap from="Color_Image" to="/camera/rgb/image"/>	
+     <remap from="Disparity_Image" to="/camera/depth/disparity"/>
+     <remap from="input_detections" to="/ground_based_people_detector/detections"/>
+     <param name="classifier_file" value="$(find detection)/data/HaarDispAda.xml"/>
+		<param name="use_disparity" value="true" />
+   </node> 
+
+	<!-- display the rois GroundPlane -->
+  <node pkg="opt_utils" type="roi_viewer" name="PeopleDetectionViewer" output="screen">
+    <param name="mode" type="string" value="roi_display"/> 
+    <param name="label" type="int" value="1" />
+    <param name="show_confidence" type="bool" value="true" />
+    <remap from ="input_image" to="camera/rgb/image"/>
+	<remap from ="input_detections" to="ground_based_people_detector/detections"/>  
+  </node>
+
+	<!-- display the rois HaarDispAda -->
+   <node pkg="opt_utils" type="roi_viewer" name="HaarDispAdaViewer" >
+     <param name="mode" type="string" value="roi_display"/> 
+     <param name="label" type="int" value="1" />
+     <param name="show_confidence" type="bool" value="true" />
+	 <remap from ="input_image" to="HaarDispAdaColorImage"/>
+	 <remap from ="input_detections" to="detector/detections"/>  
+   </node>
+
+	<!-- Almacena Datos 
+	<node pkg="detection" type="save_roi" name="SaveData" output="screen">
+	</node>
+	-->
+
+</launch>

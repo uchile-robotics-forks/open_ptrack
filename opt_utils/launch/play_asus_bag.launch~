@@ -1,0 +1,44 @@
+<launch>
+
+	<arg name="bag" default="p9" />
+
+	<!-- Lanzar rosbag -->
+	<!-- /camera/depth/image -->
+	<!-- /camera/depth/points -->
+	<!-- /camera/rgb/camera_info -->
+	<!-- /camera/rgb/image_raw -->
+
+	<param name="use_sim_time" value="true" />
+	<arg name="args2" default="--clock -l" />
+	<arg name="bagfile" default="/home/edu/bagfiles/asus_bags/$(arg bag).bag" />
+	<node pkg="rosbag" type="play" name="rosbag" args="$(arg args2) $(arg bagfile)" output="screen">
+	</node> 
+
+
+	<!-- Agregar camera_info -->
+	<!-- recibe camera/depth/image y entrega camera/Depth/camera_info -->
+	<node pkg="opt_utils" type="add_camera_info" name="add_camera_info">
+	<remap from="camera/depth/camera_info" to="camera/depth/my_camera_info" />
+	</node>
+
+
+	
+	<!-- Generar un mundo 
+	<arg name="args1" default="0 0 0 0 0 0 /world /camera_depth_optical_frame 100" />
+	<node pkg="tf" type="static_transform_publisher" name="static_world" args="$(arg args1)">
+	</node> 
+	-->
+
+
+	<!-- Imagen de disparidad -->
+	<node pkg="nodelet" type="nodelet" name="depth_to_disparity" args="standalone depth_image_proc/disparity">
+	<remap from="left/image_rect" to="camera/depth/image" />
+	<remap from="right/camera_info" to="camera/depth/my_camera_info" />
+	<remap from="left/disparity" to="camera/depth/disparity" />
+	</node> 
+
+
+
+
+
+</launch>

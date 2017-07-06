@@ -1,0 +1,24 @@
+## BAG KTP ##
+roslaunch opt_utils play_bag_KTP.launch
+roslaunch opt_utils view_bag_KTP.launch
+
+## ASUS ##
+roslaunch openni2_launch openni2.launch
+roslaunch opt_utils play_asus.launch
+roslaunch opt_utils view_asus.launch
+rosrun image_get following
+rostopic echo /image_get/track_target
+
+## VDx.oni ##
+roslaunch opt_utils play_bag_VD.launch
+roslaunch opt_utils view_bag_VD.launch
+
+## ASUS bag ##
+roslaunch opt_utils play_asus_bag.launch
+roslaunch opt_utils view_asus.launch
+roslaunch opt_follow follower.launch
+#rosrun image_get following
+
+
+## View Depth ##
+rosrun rqt_image_view rqt_image_view

@@ -126,12 +126,6 @@ OPTCalibrationNode::OPTCalibrationNode(const ros::NodeHandle & node_handle)
     if (not node_handle_.getParam(ss.str(), type_s))
       ROS_FATAL_STREAM("No \"" << ss.str() << "\" parameter found!!");
 
-    bool lock_s;
-    ss.str(std::string());
-    ss << "sensor_" << i << "/lock";
-    if (not node_handle_.getParam(ss.str(), lock_s))
-      lock_s = false;
-
 //    SensorNode::SensorType type;
 //    if (type_s == "pinhole_rgb")
 //      type = SensorNode::PINHOLE_RGB;
@@ -149,39 +143,6 @@ OPTCalibrationNode::OPTCalibrationNode(const ros::NodeHandle & node_handle)
     ss.str("");
     ss << "sensor_" << i << "/name";
     node_handle_.param(ss.str(), frame_id, frame_id);
-
-    // Read pose and fill map frame_id -> (pose, lock_flag):
-    std::string pose_s = "/poses" + frame_id;
-
-    Translation3 t;
-    Quaternion q;
-    if (lock_s && (node_handle_.hasParam(pose_s)))
-    {
-      // Read pose:
-      node_handle_.getParam(pose_s + "/translation/x", t.x());
-      node_handle_.getParam(pose_s + "/translation/y", t.y());
-      node_handle_.getParam(pose_s + "/translation/z", t.z());
-      node_handle_.getParam(pose_s + "/rotation/x", q.x());
-      node_handle_.getParam(pose_s + "/rotation/y", q.y());
-      node_handle_.getParam(pose_s + "/rotation/z", q.z());
-      node_handle_.getParam(pose_s + "/rotation/w", q.w());
-
-      ROS_INFO_STREAM("Camera " << frame_id.c_str() << " is locked!");
-      world_computation_ = FIRST_SENSOR;
-    }
-    else
-    {
-      if (lock_s)
-        ROS_ERROR("Camera %s is locked, but previous calibration is not present!", frame_id.c_str());
-
-      t = Translation3(0.0, 0.0, 0.0);
-      q = Quaternion(0.0, 0.0, 0.0, 0.0);
-      q.w() = 1.0;
-    }
-    Pose current_camera_pose = Pose::Identity();
-    current_camera_pose.linear() = q.toRotationMatrix();
-    current_camera_pose.translation() = t.vector();
-    camera_poses_.insert(std::pair<std::string, std::pair<Pose, bool> > (frame_id, std::pair<Pose, bool> (current_camera_pose, lock_s)));
 
     ROSDevice::Ptr ros_device;
 
@@ -233,14 +194,6 @@ OPTCalibrationNode::OPTCalibrationNode(const ros::NodeHandle & node_handle)
 
   }
 
-//  // Print camera_poses_:
-//  for (std::map<std::string, std::pair<Pose, bool> >::iterator it = camera_poses_.begin(); it != camera_poses_.end(); ++it)
-//  {
-//    std::cout << "Frame_id: " << it->first << std::endl;
-//    std::cout << "Lock flag: " << it->second.second << std::endl;
-//    std::cout << "Pose: " << it->second.first.matrix() << std::endl << std::endl;
-//  }
-
   if (world_computation_ == UPDATE and not fixed_sensor_)
     ROS_FATAL_STREAM("Wrong \"fixed_sensor/name\" parameter provided: " << fixed_sensor_frame_id);
 }
@@ -273,17 +226,7 @@ bool OPTCalibrationNode::initialize()
   for (size_t i = 0; i < pinhole_vec_.size(); ++i)
   {
     const PinholeRGBDevice::Ptr & device = pinhole_vec_[i];
-    const std::pair<Pose, bool> & lock_pair = camera_poses_.at(device->sensor()->frameId());
-    if (lock_pair.second)
-    {
-      device->sensor()->transform(lock_pair.first);
-      device->sensor()->setParent(calibration_->world());
-      calibration_->addSensor(device->sensor(), false);
-    }
-    else
-    {
-      calibration_->addSensor(device->sensor(), true);
-    }
+    calibration_->addSensor(device->sensor(), true);
     sensor_vec_.push_back(device->sensor());
     images_acquired_map_[device->frameId()] = 0;
     status_msg_.sensor_ids.push_back(device->frameId());

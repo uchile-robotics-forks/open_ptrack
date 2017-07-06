@@ -467,7 +467,8 @@ open_ptrack::detection::GroundBasedPeopleDetectionApp<PointT>::compute (std::vec
   extract.setIndices(inliers);
   extract.setNegative(true);
   extract.filter(*no_ground_cloud_);
-  if (inliers->size () >= (300 * 0.06 / voxel_size_ / std::pow (static_cast<double> (sampling_factor_), 2)))
+  //if (inliers->size () >= (300 * 0.06 / voxel_size_ / std::pow (static_cast<double> (sampling_factor_), 2)))
+  if (inliers->size () >= (500 * 0.06 / voxel_size_ / std::pow (static_cast<double> (sampling_factor_), 2)))
     ground_model->optimizeModelCoefficients (*inliers, ground_coeffs_, ground_coeffs_);
   else
   {
@@ -586,6 +587,7 @@ open_ptrack::detection::GroundBasedPeopleDetectionApp<PointT>::compute (std::vec
 
   return (true);
 }
+
 
 template <typename PointT>
 open_ptrack::detection::GroundBasedPeopleDetectionApp<PointT>::~GroundBasedPeopleDetectionApp ()

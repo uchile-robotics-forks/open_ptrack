@@ -4,7 +4,7 @@
 chmod +x ceres_install*
 ./ceres_install.sh
 
-cd ~/workspace/ros/catkin/src
+cd ~/catkin_ws/src
 git clone https://github.com/iaslab-unipd/calibration_toolkit 
 cd calibration_toolkit 
 git fetch origin --tags

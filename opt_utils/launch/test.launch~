@@ -1,0 +1,13 @@
+<launch>
+
+	<arg name="dataset" default="VD2" />
+
+	<!-- Ejecutar openni viewer -->
+	<node pkg="my_openni" type="openni2_primesense_viewer" name="openni_viewer" output="screen" >
+	<param name="file_name" value="/home/edu/videosBender/videos_depth/$(arg dataset).oni" />
+	<param name="depth_topic" value="/camera/depth/image"/>
+	<param name="color_topic" value="/camera/rgb/image"/>
+	</node>
+
+
+</launch>

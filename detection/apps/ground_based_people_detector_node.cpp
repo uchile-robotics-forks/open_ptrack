@@ -289,8 +289,6 @@ main (int argc, char** argv)
   nh.param("voxel_size", voxel_size, 0.06);
   bool read_ground_from_file;     // Flag stating if the ground should be read from file, if present
   nh.param("read_ground_from_file", read_ground_from_file, false);
-  bool remote_ground_selection;   // Flag enabling manual ground selection via ssh:
-  nh.param("remote_ground_selection", remote_ground_selection, false);
   // Denoising flag. If true, a statistical filter is applied to the point cloud to remove noise
   bool apply_denoising;
   nh.param("apply_denoising", apply_denoising, false);
@@ -325,6 +323,7 @@ main (int argc, char** argv)
   while(ros::ok() && !new_cloud_available_flag)
   {
     ros::spinOnce();
+
     rate.sleep();
   }
 
@@ -350,7 +349,7 @@ main (int argc, char** argv)
   reconfigure_server_->setCallback(f);
 
   // Loop until a valid point cloud is found
-  open_ptrack::detection::GroundplaneEstimation<PointT> ground_estimator(ground_estimation_mode, remote_ground_selection);
+  open_ptrack::detection::GroundplaneEstimation<PointT> ground_estimator(ground_estimation_mode);
   bool first_valid_frame = false;
   int no_valid_frame_counter = 0;
   while (!first_valid_frame)
@@ -400,8 +399,33 @@ main (int argc, char** argv)
   // Ground estimation:
   std::cout << "Ground plane initialization starting..." << std::endl;
   ground_estimator.setInputCloud(cloud);
-  Eigen::VectorXf ground_coeffs = ground_estimator.computeMulticamera(ground_from_extrinsic_calibration, read_ground_from_file,
-      pointcloud_topic, sampling_factor, voxel_size);
+
+  bool flag_ground_estimator = false;//edu
+  Eigen::VectorXf ground_coeffs;
+  while (ros::ok() && !flag_ground_estimator)
+  {
+    if (new_cloud_available_flag)
+    {
+      new_cloud_available_flag = false;
+      ground_coeffs = ground_estimator.computeMulticamera(ground_from_extrinsic_calibration, read_ground_from_file, pointcloud_topic, sampling_factor, voxel_size);
+      
+      if (ground_estimator.isGroundValid())
+      {
+        flag_ground_estimator = true;
+        //cout << "Correct ground plane initialization" << endl;
+      }
+      else
+      {
+        //cout << "No correct ground plane initialization" << endl;
+      }
+    }
+    // Execute callbacks:
+    ros::spinOnce();
+    rate.sleep();
+  }
+
+  //Eigen::VectorXf ground_coeffs = ground_estimator.computeMulticamera(ground_from_extrinsic_calibration, read_ground_from_file,
+    //  pointcloud_topic, sampling_factor, voxel_size);
 
   // Main loop:
   while(ros::ok())
@@ -435,8 +459,9 @@ main (int argc, char** argv)
 
       // If not lock_ground, update ground coefficients:
       if (not lock_ground)
-        ground_coeffs = people_detector.getGround();                 // get updated floor coefficients
-
+        if (fabs(people_detector.getGround()[1]) > 0.70)//edu
+          ground_coeffs = people_detector.getGround();                 // get updated floor coefficients
+      //cout << "Ground coeffs: " << ground_coeffs[0] << "\t" << ground_coeffs[1] << "\t" << ground_coeffs[2] << "\t" << ground_coeffs[3] << endl;
       if (sensor_tilt_compensation)
         people_detector.getTiltCompensationTransforms(transform, anti_transform);
 

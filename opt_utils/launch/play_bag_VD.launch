@@ -1,0 +1,61 @@
+<launch>
+
+	<arg name="dataset" default="VD3" />
+
+	<!-- Ejecutar openni viewer -->
+	<node pkg="my_openni" type="openni2_primesense_viewer" name="openni_viewer" output="screen" >
+	<param name="file_name" value="/home/edu/videosBender/videos_depth/$(arg dataset)" />
+	<param name="depth_topic" value="/camera/depth/image"/>
+	<param name="color_topic" value="/camera/rgb/image"/>
+	<param name="save_results_mode" value="false" />
+	</node>
+
+
+	<!-- Agregar camera_info -->
+	<!-- recibe camera/depth/image y entrega camera/depth/camera_info -->
+	<node pkg="opt_utils" type="add_camera_info" name="add_camera_info">
+	</node>
+
+	
+	<!-- Convertir imagen depth a point cloud -->
+	<node pkg="nodelet" type="nodelet" name="depth_to_pc" args="standalone depth_image_proc/point_cloud_xyz">
+	<remap from="camera_info" to="camera/depth/camera_info" />
+	<remap from="image_rect" to="camera/depth/image" />
+	<remap from="points" to="camera/depth/points" />
+	</node>
+
+	
+	<!-- Generar un mundo 
+	<arg name="args1" default="0 0 0 0 0 0 /world /openni_rgb_optical_frame 100" />
+	<node pkg="tf" type="static_transform_publisher" name="static_world" args="$(arg args1)">
+	</node> 
+	-->
+
+	<!-- Imagen de disparidad -->
+	<node pkg="nodelet" type="nodelet" name="depth_to_disparity" args="standalone depth_image_proc/disparity">
+	<remap from="left/image_rect" to="camera/depth/image" />
+	<remap from="right/camera_info" to="camera/depth/camera_info" />
+	<remap from="left/disparity" to="camera/depth/disparity" />
+	</node> 
+
+
+	<!-- Convertir imagen depth a point cloud color
+	<node pkg="nodelet" type="nodelet" name="depth_to_rgbpc" args="standalone depth_image_proc/point_cloud_xyzrgb">
+	<remap from="rgb/camera_info" to="camera/depth/camera_info" />
+	<remap from="rgb/image_rect_color" to="camera/rgb/image" />
+	<remap from="depth_registered/image_rect" to="camera/depth/image" />
+	<remap from="depth_registered/points" to="camera/depth/color_points" />
+	</node> -->
+
+
+	<!-- Lanzar rosbag -->
+	<!-- camera/depth/image -->
+	<!-- camera/rgb/image -->
+	<!-- <param name="use_sim_time" value="true" /> -->
+	<arg name="args2" default="--clock -l -r 1" />
+	<arg name="bagfile" default="/home/edu/bagfiles/Bender_depth/$(arg dataset).bag" /> -->
+	<!-- <node pkg="rosbag" type="play" name="rosbag" args="$(arg args2) $(arg bagfile)" output="screen" /> -->
+
+
+
+</launch>

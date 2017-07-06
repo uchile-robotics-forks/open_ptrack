@@ -1,0 +1,40 @@
+#ifndef FEATURE_GENERATOR_H_
+#define FEATURE_GENERATOR_H_
+
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/gpu/gpu.hpp>
+#include "opencv2/opencv.hpp"
+#include <vector>
+#include "image_get/funciones_comp.h"
+#include "image_get/RectFrame.h"
+
+using namespace cv;
+using namespace std;
+
+class FeatureGenerator
+{
+public:
+	vector<float> histLBP;
+	vector<float> histRGB;
+	vector<float> histHS;
+	Rect bb;
+
+	static vector<float> getLBP(const cv::Mat &img,const cv::Rect &rect);
+
+	bool computeFrom(Mat &im, Rect bbx,const char *nomImg);
+
+	bool drawHist(vector<float> hist, const char *nomHist);
+
+	vector<float> getFeatures(const FeatureGenerator &other);
+	static int getSize() {return 7;} // 8+1
+
+	vector<float> getFeaturesRed(const FeatureGenerator &other);
+	static int getSizeRed() {return 2;} //6// 8+1
+};
+
+bool is_valid(Rect bbx);
+Rect repairBB(Rect bbx);
+Point center_of_mass(Rect bbx);
+
+#endif // FEATURE_GENERATOR_H_

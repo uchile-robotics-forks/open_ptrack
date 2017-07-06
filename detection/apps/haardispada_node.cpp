@@ -207,6 +207,7 @@ class HaarDispAdaNode
       int callback_mode;
       std::string mode="";
       node_.param("mode", mode, std::string("none"));
+
       if(mode.compare("detect") == 0)
       {
         callback_mode = DETECT;
@@ -361,7 +362,7 @@ class HaarDispAdaNode
 
           // Build output detections message:
           createOutputDetectionsMessage(detection_msg, C_out, output_detection_msg_);
-
+					//ROS_INFO("HaarDispAda detection");
           output_rois_.rois.clear();
           output_rois_.header.stamp = image_msg->header.stamp;
           output_rois_.header.frame_id = image_msg->header.frame_id;
@@ -455,6 +456,7 @@ class HaarDispAdaNode
         // TODO
         break;
         case LOAD:
+					ROS_INFO("LOAD");
           param_name = "classifier_file";
           node_.param(param_name,cfnm,std::string("test.xml"));
           std::cout << "HaarDispAda LOADING " << cfnm.c_str() << std::endl;

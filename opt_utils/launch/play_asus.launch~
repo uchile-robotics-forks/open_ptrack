@@ -1,0 +1,29 @@
+<launch>
+
+
+	<!-- Agregar camera_info -->
+	<!-- recibe camera/depth/image y entrega camera/Depth/camera_info -->
+	<node pkg="opt_utils" type="add_camera_info" name="add_camera_info">
+	<remap from="camera/depth/camera_info" to="camera/depth/my_camera_info" />
+	</node>
+
+
+	
+	<!-- Generar un mundo -->
+	<arg name="args1" default="0 0 0 0 0 0 /world /camera_depth_optical_frame 100" />
+	<node pkg="tf" type="static_transform_publisher" name="static_world" args="$(arg args1)">
+	</node> 
+
+
+	<!-- Imagen de disparidad -->
+	<node pkg="nodelet" type="nodelet" name="depth_to_disparity" args="standalone depth_image_proc/disparity">
+	<remap from="left/image_rect" to="camera/depth/image" />
+	<remap from="right/camera_info" to="camera/depth/my_camera_info" />
+	<remap from="left/disparity" to="camera/depth/disparity" />
+	</node> 
+
+
+
+
+
+</launch>

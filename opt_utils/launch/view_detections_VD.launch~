@@ -1,0 +1,27 @@
+<launch>
+
+	<arg name="dataset" default="VD3" />
+	
+	<!-- Lanzar rosbag -->
+	<!-- camera/depth/image -->
+	<!-- camera/rgb/image -->
+	<param name="use_sim_time" value="true" />
+	<arg name="args1" default="--clock -l" />
+	<arg name="bagfile1" default="/home/edu/bagfiles/detections$(arg dataset).bag" />
+	<node pkg="rosbag" type="play" name="rosbag1" args="$(arg args1) $(arg bagfile1)" output="screen">
+	</node> 
+
+
+
+
+	<!-- display the rois HaarDispAda -->
+ <node pkg="opt_utils" type="roi_viewer" name="HaarDispAdaViewer" >
+   <param name="mode" type="string" value="roi_display"/> 
+   <param name="label" type="int" value="1" />
+   <param name="show_confidence" type="bool" value="true" />
+	 <remap from ="input_image" to="HaarDispAdaColorImage"/>
+	 <remap from ="input_detections" to="detector/detections"/>  
+	</node>
+
+
+</launch>

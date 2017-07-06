@@ -45,13 +45,13 @@ motion_weight: 0.25
 ################################
 ## Tracking policy parameters ##
 ################################
-# Track duration (seconds) after last valid detection:
+# Track duration (seconds) after last valid detection:#8
 sec_before_old: 8
-# Seconds within which a track should be validated (otherwise it is discarded):
+# Seconds within which a track should be validated (otherwise it is discarded):#2.4
 sec_before_fake: 2.4
-# Seconds after which a visible track obtain NORMAL status:
+# Seconds after which a visible track obtain NORMAL status:#1.2
 sec_remain_new: 1.2
-# Minimum number of detection<->track associations needed for validating a track:
+# Minimum number of detection<->track associations needed for validating a track:#3
 detections_to_validate: 3
 
 ###########
