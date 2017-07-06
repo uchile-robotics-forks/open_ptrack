@@ -47,48 +47,163 @@
 #include "open_ptrack/detection/detection.h"
 #include "open_ptrack/opt_follow/FeatureExtractor.h"
 
+#include "opt_msgs/Onoff.h"
+
 using namespace cv;
 using namespace std;
 
+class FollowerNode
+{
 
-ros::Publisher pub;
-ros::Publisher pub_str;
-bool init_done_flag_ = false;
-int target_id_ = -1;
-int curr_max_id_ = -1;
+private:
 
-FeatureExtractor feat_ext = FeatureExtractor();
-vector<Histogram> prev_hist_features_target_;
-vector<Histogram> hist_features_target_;
-vector< vector<Histogram> > hist_distractors_;
-const int max_distractors_ = 10;
-int idx_pop_distractor_ = 0;
+	ros::NodeHandle node_;
 
-bool set_camera_parameters_ = false;
-open_ptrack::opt_utils::Conversions converter_;
-Eigen::Matrix3f intrinsic_matrix_;
-int height_;
-int width_;
+	message_filters::Subscriber<sensor_msgs::Image> sub_image_;
+	message_filters::Subscriber<opt_msgs::TrackArray> sub_tracks_;
+	message_filters::Subscriber<opt_msgs::DetectionArray> sub_detect_;
+	message_filters::Subscriber<sensor_msgs::Image> sub_disparity_;
 
-bool flag_perdido_recien = false;
-double target_dist_ref_; // node param = 0.15
-double target_dist_thr_; // se ajusta a target_dist_ref_, pero se va adaptando
-double target_max_dist_thr_ = 0.15;
+	bool activo;
+	typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, opt_msgs::TrackArray, opt_msgs::DetectionArray, sensor_msgs::Image> MySyncPolicy;
+	typedef message_filters::Synchronizer<MySyncPolicy> MySync;
+	boost::shared_ptr<MySync> sync3;
 
-bool feat_only_start; // node param = false
-int nro_only_start;	// node param = 5; numero de frames para extraer caract.
-int nro_start = 0;
+	ros::Publisher pub;
 
-vector< vector<Histogram> > old_features; // size -> node param = 3
+	ros::ServiceServer service;
+	ros::ServiceClient client; // trackArray client
 
-vector<double> target_dists_;
-int target_dists_idx_ = 0;
-vector<double> distractor_dists_;
-int distractor_dists_idx_ = 0;
+	bool init_done_flag_;
+	int target_id_;
+	int curr_max_id_;
 
-double _min_height;	//Minima altura de target
-double _max_height;	//Maxima altura de target
+	FeatureExtractor feat_ext;
+	vector<Histogram> prev_hist_features_target_;
+	vector<Histogram> hist_features_target_;
+	vector< vector<Histogram> > hist_distractors_;
+	//const int max_distractors_ = 10;
+	int max_distractors_;
+	int idx_pop_distractor_;
 
+	bool set_camera_parameters_;
+	open_ptrack::opt_utils::Conversions converter_;
+	Eigen::Matrix3f intrinsic_matrix_;
+	int height_;
+	int width_;
+
+	bool flag_perdido_recien;
+	double target_dist_ref_; // node param = 0.15
+	double target_dist_thr_; // se ajusta a target_dist_ref_, pero se va adaptando
+	double target_max_dist_thr_;
+
+	bool feat_only_start; // node param = false
+	int nro_only_start;	// node param = 5; numero de frames para extraer caract.
+	int nro_start;
+
+	int target_frames; // numero de frames diferentes que recuerda
+
+	vector< vector<Histogram> > old_features; // size -> node param = 3
+
+	vector<double> target_dists_;
+	int target_dists_idx_;
+	vector<double> distractor_dists_;
+	int distractor_dists_idx_;
+
+	double _min_height;	//Minima altura de target
+	double _max_height;	//Maxima altura de target
+
+public:
+
+	explicit FollowerNode(const ros::NodeHandle& nh):
+	node_(nh)
+	{
+		activo = false;
+		init_done_flag_ = false;
+		target_id_ = -1;
+		curr_max_id_ = -1;
+		max_distractors_ = 10;
+		idx_pop_distractor_ = 0;
+		set_camera_parameters_ = false;
+		flag_perdido_recien = false;
+		target_max_dist_thr_ = 0.15;
+		nro_start = 0;
+		target_dists_idx_ = 0;
+		distractor_dists_idx_ = 0;
+
+		//feat_ext.init();
+
+      	node_.param("target_dist_thr", target_dist_ref_, 0.15);
+		target_dist_thr_ = target_dist_ref_;
+
+		node_.param("get_feature_only_start", feat_only_start, false);
+		
+		node_.param("nro_only_start", nro_only_start, 5);
+		
+		node_.param("target_frames", target_frames, 3);
+		old_features.resize(target_frames);
+
+		double training_factor;
+		node_.param("training_factor", training_factor, 0.125); // 1/8
+		feat_ext.setTrainingFactor(training_factor);
+
+		pub = node_.advertise<opt_msgs::Track>("tracker/target",30);
+	
+		sub_image_.subscribe(node_, "/HaarDispAdaColorImage", 3);
+		sub_tracks_.subscribe(node_, "/tracker/tracks_smoothed", 3);
+		sub_detect_.subscribe(node_, "/detector/detections", 3);
+		sub_disparity_.subscribe(node_, "/depth_image", 3);
+
+		sync3.reset(new MySync(MySyncPolicy(10), 
+			sub_image_, 
+			sub_tracks_, 
+			sub_detect_, 
+			sub_disparity_));
+	    
+	    
+	    /*sync3->registerCallback(boost::bind(&FollowerNode::callbackNoFeatCarac,
+	    	  this,
+	          _1,
+	          _2,
+	          _3, 
+	          _4));
+	    */
+	    service = node_.advertiseService("Active", &FollowerNode::Active, this);
+
+	    client = node_.serviceClient<opt_msgs::Onoff>("/moving_average_filter_node/Active",1);
+
+	}
+
+
+void clearNode()
+{
+	init_done_flag_ = false;
+	target_id_ = -1;
+	curr_max_id_ = -1;
+	idx_pop_distractor_ = 0;
+	flag_perdido_recien = false;
+	target_max_dist_thr_ = 0.15;
+	nro_start = 0;
+	target_dists_idx_ = 0;
+	distractor_dists_idx_ = 0;
+	target_dist_thr_ = target_dist_ref_;
+
+	prev_hist_features_target_.clear();
+	hist_features_target_.clear();
+	hist_distractors_.clear();
+
+	old_features.clear();
+	old_features.resize(target_frames);
+
+	target_dists_.clear();
+	distractor_dists_.clear();
+}
+
+
+void printFeatureWeights(void)
+{
+	feat_ext.printWeights();
+}
 
 cv::Mat convertROSImageToCV(const sensor_msgs::ImageConstPtr &image)
 {
@@ -673,6 +788,7 @@ bool compareTargetHeight(double height)
 	return false;
 }
 
+
 //void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_msgs::TrackArray::ConstPtr &tracks_msg, const opt_msgs::DetectionArray::ConstPtr &detections_msg, const stereo_msgs::DisparityImageConstPtr &disparity_msg)
 void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_msgs::TrackArray::ConstPtr &tracks_msg, const opt_msgs::DetectionArray::ConstPtr &detections_msg, const sensor_msgs::ImageConstPtr &depth_msg)
 {
@@ -728,6 +844,7 @@ void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_
 					cv::Mat mask = cropMask(depth, rect_target, msg_track.distance);
 
 					feat_ext.getFeaturesMasked(blob_im, hist_features_target_, mask);
+					prev_hist_features_target_ = hist_features_target_;
 					
 					//cv::Mat blob_im = cropImage(image,rect_target);
 					//feat_ext.getFeatures(blob_im, hist_features_target_, mask);
@@ -928,6 +1045,80 @@ void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_
 }
 
 
+//bool Active(bender_srvs::Onoff::Request  &req, bender_srvs::Onoff::Response &res)
+bool Active(opt_msgs::Onoff::Request  &req, opt_msgs::Onoff::Response &res)
+{
+
+    if(req.select == true){
+		if (activo) {
+			ROS_INFO_STREAM("Already turned on");
+		} else {
+
+			opt_msgs::Onoff srv;
+			srv.request.select = true;
+			
+			if(client.call(srv))
+			{
+				activo = true;
+
+				sync3.reset(new MySync(MySyncPolicy(10), 
+						sub_image_, 
+						sub_tracks_, 
+						sub_detect_, 
+						sub_disparity_));
+		    
+		    	sync3->registerCallback(boost::bind(&FollowerNode::callbackNoFeatCarac,
+						this,
+						_1,
+						_2,
+						_3, 
+						_4));
+				
+				ROS_INFO_STREAM("Starting Follower. . . OK");
+			}
+			else {
+				ROS_ERROR("Follower-Track service failed");
+			}
+		}
+    }
+    else{
+	 if (activo) {
+
+	 	opt_msgs::Onoff srv;
+		srv.request.select = false;
+
+		if(client.call(srv))
+		{
+			activo = false;
+
+			// Set defaults values
+			clearNode();
+
+			sync3.reset(new MySync(MySyncPolicy(10), 
+					sub_image_, 
+					sub_tracks_, 
+					sub_detect_, 
+					sub_disparity_));
+
+			ROS_INFO_STREAM(" Turning off . . . OK");
+		}
+		else {
+			ROS_ERROR("Follower-Track service failed");
+		}
+	  } else {
+		      ROS_INFO_STREAM("Already turned off");
+	  }
+    }
+    return true;
+}
+
+~FollowerNode()
+    {
+    }
+
+};
+
+
 
 int main(int argc, char **argv)
 {
@@ -935,6 +1126,11 @@ int main(int argc, char **argv)
 
 	ros::NodeHandle n("~");
 
+	FollowerNode FN(n);
+
+	
+
+	/*
 	n.param("target_dist_thr", target_dist_ref_, 0.15);
 	target_dist_thr_ = target_dist_ref_;
 
@@ -951,19 +1147,36 @@ int main(int argc, char **argv)
 	feat_ext.setTrainingFactor(training_factor);
 
 	pub = n.advertise<opt_msgs::Track>("tracker/target",30);
+	*/
 
+	/*
+	typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, opt_msgs::TrackArray, opt_msgs::DetectionArray, sensor_msgs::Image> MySyncPolicy;
+	message_filters::Synchronizer<MySyncPolicy> sync2(MySyncPolicy(10), sub_image_, sub_tracks_, sub_detect_, sub_disparity_);
+	sync2.registerCallback(boost::bind(&callbackNoFeatCarac, _1, _2, _3, _4));
+	*/
+
+	/*
 	message_filters::Subscriber<sensor_msgs::Image> sub_image_(n, "/HaarDispAdaColorImage", 3);
 	message_filters::Subscriber<opt_msgs::TrackArray> sub_tracks_(n, "/tracker/tracks_smoothed", 3);
 	message_filters::Subscriber<opt_msgs::DetectionArray> sub_detect_(n, "/detector/detections", 3);
 	message_filters::Subscriber<sensor_msgs::Image> sub_disparity_(n, "/depth_image", 3);
-	//message_filters::Subscriber<stereo_msgs::DisparityImage> sub_disparity_(n, "/HaarDispAdaDisparityImage", 3);
 
-	typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, opt_msgs::TrackArray, opt_msgs::DetectionArray, sensor_msgs::Image> MySyncPolicy;
-	//typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, opt_msgs::TrackArray, opt_msgs::DetectionArray, stereo_msgs::DisparityImage> MySyncPolicy;
-
-	message_filters::Synchronizer<MySyncPolicy> sync2(MySyncPolicy(10), sub_image_, sub_tracks_, sub_detect_, sub_disparity_);
-	sync2.registerCallback(boost::bind(&callbackNoFeatCarac, _1, _2, _3, _4));
 	
+	sync3.reset(new message_filters::Synchronizer<MySyncPolicy>(MySyncPolicy(10), 
+		sub_image_, 
+		sub_tracks_, 
+		sub_detect_, 
+		sub_disparity_));
+
+    sync3->registerCallback(boost::bind(&callbackNoFeatCarac,
+          _1,
+          _2,
+          _3, 
+          _4));
+    */
+    
+
+
 	ROS_INFO("Follower listo");
 
 	namedWindow("Follower");
@@ -973,9 +1186,12 @@ int main(int argc, char **argv)
 	moveWindow("Negativo", 900,20);
 	moveWindow("Follower", 20, 20);
 
+
+
 	ros::spin();
 
-	feat_ext.printWeights();
+	FN.printFeatureWeights();
+
 
 	return 0;
 }

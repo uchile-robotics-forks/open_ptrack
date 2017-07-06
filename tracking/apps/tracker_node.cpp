@@ -442,6 +442,7 @@ detection_cb(const opt_msgs::DetectionArray::ConstPtr& msg)
 
           // Plot legend with camera names and colors:
           //plotCameraLegend (color_map); //edu
+	
         }
         for (unsigned int i = 0; i < detections_vector.size(); i++)
         {

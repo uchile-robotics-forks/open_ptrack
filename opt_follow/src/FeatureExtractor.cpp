@@ -15,6 +15,16 @@ FeatureExtractor::FeatureExtractor ()
 	factor_ = 1/8;
 }
 
+void FeatureExtractor::init(void)
+{
+	for (int i = 0; i < _nFeat; i++)
+	{
+		_w[i] = 1.0/_nFeat;
+	}
+
+	factor_ = 1/8;
+}
+
 bool FeatureExtractor::hola(void)
 {
 	cout << "hola Feat Ext" << endl;

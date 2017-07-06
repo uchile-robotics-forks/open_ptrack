@@ -11,7 +11,7 @@
 
 
 	<!-- Launch HaarDispAda Node -->
-	<node name="HaarDispAdaNode" pkg="detection" type="HaarDispAda1744" output="screen">	
+	<node name="HaarDispAdaNode" pkg="detection" type="HaarDispAda174" output="screen">	
      <rosparam command="load" file="$(find detection)/conf/haar_disp_ada_detector.yaml" /> 
      <remap from="Color_Image" to="/camera/rgb/image_color"/>	
      <remap from="Disparity_Image" to="/camera/depth/disparity"/>

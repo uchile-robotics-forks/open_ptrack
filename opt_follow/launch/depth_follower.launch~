@@ -6,7 +6,7 @@
 		<param name="nro_only_start" value="10" />
 		<param name="target_frames" value="5" />
 		<param name="target_dist_thr" value="0.15" />
-		<param name="training_factor" value="0.55" /> <!-- 0.55 -->
+		<param name="training_factor" value="0.85" /> <!-- 0.55 -->
 		<remap from="depth_image" to="/camera/depth_registered/image_raw" />
 
 		

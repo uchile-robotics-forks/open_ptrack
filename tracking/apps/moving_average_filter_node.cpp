@@ -48,6 +48,8 @@
 #include <dynamic_reconfigure/server.h>
 #include <tracking/MovingAverageSmootherConfig.h>
 
+#include "opt_msgs/Onoff.h"
+
 namespace open_ptrack
 {
 namespace tracking
@@ -138,6 +140,7 @@ protected:
 
   std::list<TrackPositionNode::Ptr> last_positions_;
   int window_size_;
+  
 
   Eigen::Array2d last_positions_sum_;
 
@@ -153,7 +156,11 @@ struct TrackInfo
 class MovingAverageSmoother
 {
 
+private:
+  bool activo;
+
 public:
+
 
   MovingAverageSmoother(ros::NodeHandle & node_handle)
     : node_handle_(node_handle),
@@ -161,6 +168,8 @@ public:
       rate_(ros::Rate(30.0))
   {
     double rate_d, heartbeat_time;
+    
+    activo = false;
 
     node_handle_.param("rate", rate_d, 30.0);
     node_handle_.param("publish_empty", publish_empty_, true);
@@ -182,15 +191,20 @@ public:
 
     heartbeat_time_duration_ = ros::Duration(heartbeat_time);
 
-    tracking_sub_ = node_handle_.subscribe<opt_msgs::TrackArray>("input", 100, &MovingAverageSmoother::trackingCallback, this);
+    //tracking_sub_ = node_handle_.subscribe<opt_msgs::TrackArray>("input", 100, &MovingAverageSmoother::trackingCallback, this);
     tracking_pub_ = node_handle_.advertise<opt_msgs::TrackArray>("output", 1);
     marker_array_pub_ = node_handle_.advertise<visualization_msgs::MarkerArray>("markers_array", 1);
     history_pub_ = node_handle_.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("history", 1);
+
+    service_ = node_handle_.advertiseService("Active", &MovingAverageSmoother::Active, this);
+    client_ = node_handle_.serviceClient<opt_msgs::Onoff>("/HaarDispAdaNode/Active");
 
     rate_ = ros::Rate(rate_d);
 
     ReconfigureServer::CallbackType callback = boost::bind(&MovingAverageSmoother::configCallback, this, _1, _2);
     reconfigure_server_->setCallback(callback);
+
+    
 
   }
 
@@ -250,39 +264,100 @@ public:
     {
       ros::spinOnce();
 
-      opt_msgs::TrackArray track_msg;
-      visualization_msgs::MarkerArray marker_msg;
-
-      int n = createMsg(track_msg, marker_msg);
-      ros::Time current_time = ros::Time::now();
-
       config_mutex_.lock();
-      if (publish_empty_ or n > 0)
+      bool aux_activo = activo;
+      config_mutex_.unlock();
+      if (!aux_activo)
       {
-        tracking_pub_.publish(track_msg);
-        marker_array_pub_.publish(marker_msg);
-        history_pub_.publish(history_cloud_);
-        last_heartbeat_time = current_time;
+        rate_.sleep();
       }
-      else if (not publish_empty_)
+      else
       {
-        // Publish a heartbeat message every 'heartbeat_time' seconds
-        if ((current_time - last_heartbeat_time) > heartbeat_time_duration_)
+        //ros::spinOnce();
+
+        opt_msgs::TrackArray track_msg;
+        visualization_msgs::MarkerArray marker_msg;
+
+        int n = createMsg(track_msg, marker_msg);
+        ros::Time current_time = ros::Time::now();
+
+        config_mutex_.lock();
+        if (publish_empty_ or n > 0)
         {
-          opt_msgs::TrackArray heartbeat_msg;
-          heartbeat_msg.header.stamp = current_time;
-          heartbeat_msg.header.frame_id = "heartbeat";
-          tracking_pub_.publish(heartbeat_msg);
+          tracking_pub_.publish(track_msg);
           marker_array_pub_.publish(marker_msg);
           history_pub_.publish(history_cloud_);
           last_heartbeat_time = current_time;
         }
-      }
-      config_mutex_.unlock();
+        else if (not publish_empty_)
+        {
+          // Publish a heartbeat message every 'heartbeat_time' seconds
+          if ((current_time - last_heartbeat_time) > heartbeat_time_duration_)
+          {
+            opt_msgs::TrackArray heartbeat_msg;
+            heartbeat_msg.header.stamp = current_time;
+            heartbeat_msg.header.frame_id = "heartbeat";
+            tracking_pub_.publish(heartbeat_msg);
+            marker_array_pub_.publish(marker_msg);
+            history_pub_.publish(history_cloud_);
+            last_heartbeat_time = current_time;
+          }
+        }
+        config_mutex_.unlock();
 
-      rate_.sleep();
+        rate_.sleep();
+      }
     }
   }
+
+  //bool Active(bender_srvs::Onoff::Request  &req, bender_srvs::Onoff::Response &res)
+bool Active(opt_msgs::Onoff::Request  &req, opt_msgs::Onoff::Response &res)
+{
+  config_mutex_.lock();
+  if(req.select == true)
+  {
+    if (activo)
+    {
+      ROS_INFO_STREAM("Already turned on");
+    } 
+    else 
+    {
+      opt_msgs::Onoff srv;
+      srv.request.select = true;
+      if(client_.call(srv))
+      {
+        activo = true;
+        tracking_sub_ = node_handle_.subscribe<opt_msgs::TrackArray>("/tracker/tracks", 100, &MovingAverageSmoother::trackingCallback, this);
+        ROS_INFO_STREAM("MovingAverageSmoother Ready. . . OK");
+      }else{
+        ROS_ERROR("Service tracker-haardispada failed");
+      }
+    }
+  }
+  else
+  {
+    if (activo)
+    {
+      opt_msgs::Onoff srv;
+      srv.request.select = false;
+      if(client_.call(srv))
+      {
+        tracking_sub_.shutdown();
+        activo = false;
+        ROS_INFO_STREAM(" Turning off . . . OK");
+      }else{
+        ROS_ERROR("Service tracker-haardispada failed");
+      }
+    } 
+    else
+    {
+      ROS_INFO_STREAM("Already turned off");
+    }
+  }
+  config_mutex_.unlock();
+  return true;
+}
+
 
 private:
 
@@ -463,6 +538,10 @@ private:
   ros::Publisher tracking_pub_;
   ros::Publisher marker_array_pub_;
   ros::Publisher history_pub_;
+
+  ros::ServiceServer service_;
+  ros::ServiceClient client_; // trackArray client
+
 
   bool publish_empty_;
   ros::Duration heartbeat_time_duration_;

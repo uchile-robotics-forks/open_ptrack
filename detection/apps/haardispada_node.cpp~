@@ -67,6 +67,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <dynamic_reconfigure/server.h>
 #include <detection/HaarDispAdaDetectorConfig.h>
 
+#include "opt_msgs/Onoff.h"
+
 using namespace stereo_msgs;
 using namespace message_filters::sync_policies;
 using namespace opt_msgs;
@@ -105,6 +107,10 @@ class HaarDispAdaNode
     ros::Publisher pub_Disparity_Image_;
     ros::Publisher pub_detections_;
 
+    ros::ServiceServer service;
+    ros::ServiceClient client; // people detector client
+    bool activo;
+
     Rois output_rois_;
 
     enum {ACCUMULATE=0, TRAIN, DETECT, EVALUATE, LOAD};
@@ -131,6 +137,8 @@ class HaarDispAdaNode
     // Output detections message:
     DetectionArray::Ptr output_detection_msg_;
 
+    int qs;
+
     // Dynamic reconfigure
     boost::recursive_mutex config_mutex_;
     boost::shared_ptr<ReconfigureServer> reconfigure_server_;
@@ -148,7 +156,6 @@ class HaarDispAdaNode
       num_FP_class0 = 0;
 
       string nn = ros::this_node::getName();
-      int qs;
       if(!node_.getParam("Q_Size",qs)){
         qs=3;
       }
@@ -188,11 +195,20 @@ class HaarDispAdaNode
           sub_disparity_,
           sub_detections_));
 
-      approximate_sync_->registerCallback(boost::bind(&HaarDispAdaNode::imageCb,
+      /*approximate_sync_->registerCallback(boost::bind(&HaarDispAdaNode::imageCb,
           this,
           _1,
           _2,
           _3));
+          */
+
+      activo = false;
+      
+      service = node_.advertiseService("Active", &HaarDispAdaNode::Active, this);
+
+      //ros::service::waitForService("/ground_based_people_detector/Active",2);
+      client = node_.serviceClient<opt_msgs::Onoff>("/ground_based_people_detector/Active",1);
+
 
       // Set up dynamic reconfiguration
       ReconfigureServer::CallbackType f = boost::bind(&HaarDispAdaNode::configCb, this, _1, _2);
@@ -356,7 +372,6 @@ class HaarDispAdaNode
       // do the work of the node
       switch(get_mode()){
         case DETECT:
-					ROS_INFO("DETECT");
           // Perform people detection within the input rois:
           label_all = true;
           HDAC_.detect(R_in,L_in,dmatrix,R_out,L_out,C_out,label_all);
@@ -475,6 +490,66 @@ class HaarDispAdaNode
       min_confidence = config.haar_disp_ada_min_confidence;
       HDAC_.setMinConfidence (min_confidence);
     }
+
+
+  //bool Active(bender_srvs::Onoff::Request  &req, bender_srvs::Onoff::Response &res)
+  bool Active(opt_msgs::Onoff::Request  &req, opt_msgs::Onoff::Response &res)
+  {
+      if(req.select == true){
+      if (activo) {
+        ROS_INFO_STREAM("Already turned on");
+      } else {
+
+        opt_msgs::Onoff srv;
+        srv.request.select = true;
+        
+        if(client.call(srv))
+        {
+          activo = true;
+
+          approximate_sync_.reset(new ApproximateSync(ApproximatePolicy(qs),
+              sub_image_,
+              sub_disparity_,
+              sub_detections_));
+
+          approximate_sync_->registerCallback(boost::bind(&HaarDispAdaNode::imageCb,
+              this,
+              _1,
+              _2,
+              _3));
+          
+          ROS_INFO_STREAM("HaarDispAda Ready. . . OK");
+        }
+        else {
+          ROS_ERROR("PeopleDetector service failed");
+        }
+      }
+      }
+      else{
+     if (activo) {
+
+      opt_msgs::Onoff srv;
+      srv.request.select = false;
+
+      if(client.call(srv))
+      {
+        activo = false;
+        approximate_sync_.reset(new ApproximateSync(ApproximatePolicy(qs),
+              sub_image_,
+              sub_disparity_,
+              sub_detections_));
+
+        ROS_INFO_STREAM(" Turning off . . . OK");
+      }
+      else {
+        ROS_ERROR("PeopleDetector service failed");
+      }
+      } else {
+            ROS_INFO_STREAM("Already turned off");
+      }
+      }
+      return true;
+  }
 
     ~HaarDispAdaNode()
     {

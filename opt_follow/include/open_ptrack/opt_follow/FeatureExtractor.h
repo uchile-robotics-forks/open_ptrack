@@ -38,6 +38,8 @@ public:
 
 	FeatureExtractor(void);
 
+	void init(void);
+
 	void edgeDensityImage(cv::Mat &input_gray, cv::Mat &output);
 
 	bool hola(void);

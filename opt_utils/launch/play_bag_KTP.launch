@@ -1,9 +1,9 @@
 <launch>
 
 	<!-- Agregar camera_info -->
-	<!-- recibe camera/depth/image y entrega camera/Depth/camera_info -->
+	<!-- recibe camera/depth/image y entrega camera/Depth/camera_info 
 	<node pkg="opt_utils" type="add_camera_info" name="add_camera_info">
-	</node>
+	</node> -->
 
 	
 	<!-- Convertir imagen depth a point cloud -->
@@ -38,12 +38,12 @@
 	</node>
 
 
-	<!-- Imagen de disparidad -->
+	<!-- Imagen de disparidad 
 	<node pkg="nodelet" type="nodelet" name="depth_to_disparity" args="standalone depth_image_proc/disparity">
 	<remap from="left/image_rect" to="camera/depth/image" />
 	<remap from="right/camera_info" to="camera/depth/camera_info" />
 	<remap from="left/disparity" to="camera/depth/disparity" />
-	</node> 
+	</node> -->
 
 
 	<!-- Convertir imagen depth a point cloud color

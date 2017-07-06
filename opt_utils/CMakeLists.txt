@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(opt_utils)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
-find_package(catkin REQUIRED COMPONENTS cmake_modules roscpp rosconsole image_transport cv_bridge opt_msgs)
+find_package(catkin REQUIRED COMPONENTS cmake_modules roscpp rosconsole image_transport cv_bridge opt_msgs message_generation)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 link_directories(${OpenCV_LIB_DIR})
@@ -24,6 +24,9 @@ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 add_executable(roi_viewer apps/roi_viewer.cpp)
 target_link_libraries(roi_viewer boost_system boost_filesystem boost_signals ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
+#add_executable(target_viewer apps/target_viewer.cpp)
+#target_link_libraries(target_viewer boost_system boost_filesystem boost_signals ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS})
+
 #add_executable(tracking_viewer apps/tracking_viewer.cpp)
 #target_link_libraries(tracking_viewer boost_system boost_filesystem boost_signals ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
@@ -34,7 +37,7 @@ add_executable(udp_listener apps/udp_listener.cpp src/udp_messaging.cpp)
 target_link_libraries(udp_listener ${catkin_LIBRARIES})
 
 
-add_executable(add_camera_info_opt apps/addCameraInfo.cpp)
-target_link_libraries(add_camera_info_opt ${catkin_LIBRARIES})
+add_executable(add_camera_info apps/addCameraInfo.cpp)
+target_link_libraries(add_camera_info ${catkin_LIBRARIES})
 ##add_dependencies(add_camera_info image_get_generate_messages_cpp)
 

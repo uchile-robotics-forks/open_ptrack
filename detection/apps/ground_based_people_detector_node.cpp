@@ -74,6 +74,8 @@
 #include <dynamic_reconfigure/server.h>
 #include <detection/GroundBasedPeopleDetectorConfig.h>
 
+#include "opt_msgs/Onoff.h"
+
 using namespace opt_msgs;
 using namespace sensor_msgs;
 
@@ -115,11 +117,17 @@ bool background_subtraction;
 // Threshold on the ratio of valid points needed for ground estimation
 double valid_points_threshold;
 
+bool active = false;
+ros::ServiceServer service;
+
 void
 cloud_cb (const PointCloudT::ConstPtr& callback_cloud)
 {
-  *cloud = *callback_cloud;
-  new_cloud_available_flag = true;
+  if (active)
+  {
+    *cloud = *callback_cloud;
+    new_cloud_available_flag = true;  
+  }
 }
 
 void
@@ -237,15 +245,45 @@ fileExists(const char *fileName)
     return infile.good();
 }
 
+
+//bool Active(bender_srvs::Onoff::Request  &req, bender_srvs::Onoff::Response &res)
+bool 
+Active(opt_msgs::Onoff::Request  &req, opt_msgs::Onoff::Response &res)
+{
+
+    if(req.select == true){
+    if (active) {
+      ROS_INFO_STREAM("Already turned on");
+    } else {
+      active = true;
+
+      ROS_INFO_STREAM("PeopleDetector ready. . . OK");
+    }
+    }
+    else{
+   if (active) {
+    active = false;
+    ROS_INFO_STREAM(" PeopleDetector stand by . . . OK");
+    } else {
+          ROS_INFO_STREAM("Already turned off");
+    }
+    }
+    return true;
+}
+
+
 int
 main (int argc, char** argv)
 {
-  ros::init(argc, argv, "ground_based_people_detector");
+  ros::init(argc, argv, "people_detector");
   ros::NodeHandle nh("~");
+
+  service = nh.advertiseService("Active", Active);
 
   // Dynamic reconfigure
   boost::recursive_mutex config_mutex_;
   boost::shared_ptr<ReconfigureServer> reconfigure_server_;
+
 
   // Read some parameters from launch file:
   int ground_estimation_mode;
@@ -299,6 +337,8 @@ main (int argc, char** argv)
   double std_dev_denoising;
   nh.param("std_dev_denoising", std_dev_denoising, 0.3);
 
+  ros::Rate rate(rate_value);
+
   //	Eigen::Matrix3f intrinsics_matrix;
   intrinsics_matrix << 525, 0.0, 319.5, 0.0, 525, 239.5, 0.0, 0.0, 1.0; // Kinect RGB camera intrinsics
 
@@ -306,6 +346,7 @@ main (int argc, char** argv)
   Eigen::Affine3f transform, anti_transform;
   transform = transform.Identity();
   anti_transform = transform.inverse();
+
 
   // Subscribers:
   ros::Subscriber sub = nh.subscribe(pointcloud_topic, 1, cloud_cb);
@@ -316,11 +357,14 @@ main (int argc, char** argv)
   ros::Publisher detection_pub;
   detection_pub= nh.advertise<DetectionArray>(output_topic, 3);
 
+  
+
+
   Rois output_rois_;
   open_ptrack::opt_utils::Conversions converter;
 
-  ros::Rate rate(rate_value);
-  while(ros::ok() && !new_cloud_available_flag)
+  
+  while(ros::ok() && !new_cloud_available_flag && !active)
   {
     ros::spinOnce();
 
@@ -354,22 +398,25 @@ main (int argc, char** argv)
   int no_valid_frame_counter = 0;
   while (!first_valid_frame)
   {
-    if (!ground_estimator.tooManyNaN(cloud, 1 - valid_points_threshold))
-    { // A point cloud is valid if the ratio #NaN / #valid points is lower than a threshold
-      first_valid_frame = true;
-      std::cout << "Valid frame found!" << std::endl;
-    }
-    else
+    if (active)
     {
-      if (++no_valid_frame_counter > 60)
+      if (!ground_estimator.tooManyNaN(cloud, 1 - valid_points_threshold))
+      { // A point cloud is valid if the ratio #NaN / #valid points is lower than a threshold
+        first_valid_frame = true;
+        std::cout << "Valid frame found!" << std::endl;
+      }
+      else
       {
-        std::cout << "No valid frame. Move the camera to a better position..." << std::endl;
-        no_valid_frame_counter = 0;
+        if (++no_valid_frame_counter > 60)
+        {
+          std::cout << "No valid frame. Move the camera to a better position..." << std::endl;
+          no_valid_frame_counter = 0;
+        }
       }
     }
-
     // Execute callbacks:
     ros::spinOnce();
+
     rate.sleep();
   }
   std::cout << std::endl;
