@@ -115,6 +115,8 @@ private:
 	double _target_distance; //Distancia del target en metros
 	bool _close_range;
 
+	double time_;
+
 public:
 
 	explicit FollowerNode(const ros::NodeHandle& nh):
@@ -134,6 +136,7 @@ public:
 		distractor_dists_idx_ = 0;
 		_target_distance = -1;
 		_close_range = false;
+		time_ = 0;
 
 		//feat_ext.init();
 
@@ -1106,7 +1109,16 @@ void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_
 			}
 		}
 	}
-	pub.publish(track_target_msg);
+
+	double aux_time = ros::Time::now().toSec();
+
+	if (aux_time - time_ > 0.05) //0.1=1/10 [s] = 10 [Hz]
+	{
+		pub.publish(track_target_msg);
+		time_ = aux_time;
+	}
+
+	//pub.publish(track_target_msg);
 
 	if (activo)
 	{		
