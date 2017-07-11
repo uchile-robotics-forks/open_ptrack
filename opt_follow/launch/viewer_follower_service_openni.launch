@@ -1,7 +1,7 @@
 <launch>
 
 	<!-- Agregar camera_info -->
-	<!-- recibe camera/depth/image y entrega camera/Depth/camera_info -->
+	<!-- recibe camera/depth/image y entrega camera/depth/camera_info -->
 	<node pkg="opt_utils" type="add_camera_info" name="add_camera_info">
 	<remap from="camera/depth/camera_info" to="camera/depth/camera_info" />
 	</node>
@@ -28,7 +28,7 @@
 	<!-- Launch HaarDispAda Node -->
 	<node name="HaarDispAdaNode" pkg="detection" type="HaarDispAda174" output="screen">	
      <rosparam command="load" file="$(find detection)/conf/haar_disp_ada_detector.yaml" /> 
-     <remap from="Color_Image" to="/camera/rgb/image_color"/>	
+     <remap from="Color_Image" to="/camera/rgb/image_raw"/>	
      <remap from="Disparity_Image" to="/camera/depth/disparity"/>
      <remap from="input_detections" to="/ground_based_people_detector/detections"/>
      <param name="classifier_file" value="$(find detection)/data/HaarDispAda.xml"/>
@@ -64,6 +64,26 @@
 	</node>
 
 
+  <!-- display the rois-->
+  <node pkg="opt_utils" type="roi_viewer" name="PeopleDetectionViewer" output="screen">
+    <param name="mode" type="string" value="roi_display"/> 
+    <param name="label" type="int" value="1" />
+    <param name="show_confidence" type="bool" value="true" />
+    <remap from ="input_image" to="/camera/rgb/image_raw"/>
+	<remap from ="input_detections" to="/ground_based_people_detector/detections"/>  
+  </node>
+
+   <!-- display the rois -->
+   <node pkg="opt_utils" type="roi_viewer" name="HaarDispAdaViewer" output="screen">
+     <param name="mode" type="string" value="roi_display"/> 
+     <param name="label" type="int" value="1" />
+     <param name="show_confidence" type="bool" value="true" />
+	 <remap from ="input_image" to="HaarDispAdaColorImage"/>
+	 <remap from ="input_detections" to="/detector/detections"/>  
+   </node>
+
+	<!-- ROS visualizer -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find tracking)/conf/tracking.rviz" />
 
 
 </launch>
