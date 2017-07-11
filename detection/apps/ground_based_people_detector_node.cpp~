@@ -275,7 +275,7 @@ Active(opt_msgs::Onoff::Request  &req, opt_msgs::Onoff::Response &res)
 int
 main (int argc, char** argv)
 {
-  ros::init(argc, argv, "ground_based_people_detector");
+  ros::init(argc, argv, "people_detector");
   ros::NodeHandle nh("~");
 
   service = nh.advertiseService("Active", Active);

@@ -133,12 +133,15 @@ cloud_cb (const PointCloudT::ConstPtr& callback_cloud)
 void
 cameraInfoCallback (const sensor_msgs::CameraInfo::ConstPtr & msg)
 {
-  if (!intrinsics_already_set)
+  if (active)
   {
-    intrinsics_matrix << msg->K.elems[0], msg->K.elems[1], msg->K.elems[2],
-        msg->K.elems[3], msg->K.elems[4], msg->K.elems[5],
-        msg->K.elems[6], msg->K.elems[7], msg->K.elems[8];
-    intrinsics_already_set = true;
+    if (!intrinsics_already_set)
+    {
+      intrinsics_matrix << msg->K.elems[0], msg->K.elems[1], msg->K.elems[2],
+          msg->K.elems[3], msg->K.elems[4], msg->K.elems[5],
+          msg->K.elems[6], msg->K.elems[7], msg->K.elems[8];
+      intrinsics_already_set = true;
+    }
   }
 }
 
