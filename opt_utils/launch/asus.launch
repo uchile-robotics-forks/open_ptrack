@@ -1,0 +1,14 @@
+<launch>
+
+
+	<!-- Imagen de disparidad -->
+	<node pkg="nodelet" type="nodelet" name="depth_to_disparity" args="standalone depth_image_proc/disparity">
+	<remap from="left/image_rect" to="camera/depth/image" />
+	<remap from="right/camera_info" to="camera/depth/camera_info" />
+	<remap from="left/disparity" to="camera/depth/disparity" />
+	</node> 
+
+
+
+
+</launch>
