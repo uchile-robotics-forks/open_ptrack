@@ -795,34 +795,48 @@ void updateTargetHeight(double height)
 
 bool compareTargetHeight(double height)
 {
-	if (height < _max_height*1.1 && height > _min_height*0.9)
+	if (height < _max_height*1.2 && height > _min_height*0.8)
 		return true;
 
 	return false;
 }
 
 
+double meanDepth(cv::Mat &depth)
+{
+	double suma = 0;
+	double n = 0;
+	for (int r = 0; r < depth.rows; r++)
+	{
+		for (int c = 0; c < depth.cols; c++)
+		{
+			double auxi = (double) depth.at<float>(r,c);
+			if (!isnan(auxi))
+			{
+				suma = suma + auxi;
+				n++;
+			}
+		}
+	}
+
+	if (n == 0)
+		return 1000;
+
+	return suma/n;
+}
+
+
 bool targetIsClose(cv::Mat &depth)
 {
-	return false;
-	cv::Scalar value = cv::mean(depth);
-	double dist = value.val[0];
-
-	cout << "Mean distance: " << dist << endl;
-
 	if (_target_distance > 0.4)
 		return false;
-	/*
-	cv::Scalar value = cv::mean(depth);
-	double dist = value.val[0];
 
-	cout << "Mean distance: " << dist << endl;
-*/
-	if (dist > 0.4)
+	if (meanDepth(depth) > 0.4)
 		return false;
 
 	return true;
 }
+
 
 //void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_msgs::TrackArray::ConstPtr &tracks_msg, const opt_msgs::DetectionArray::ConstPtr &detections_msg, const stereo_msgs::DisparityImageConstPtr &disparity_msg)
 void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_msgs::TrackArray::ConstPtr &tracks_msg, const opt_msgs::DetectionArray::ConstPtr &detections_msg, const sensor_msgs::ImageConstPtr &depth_msg)
