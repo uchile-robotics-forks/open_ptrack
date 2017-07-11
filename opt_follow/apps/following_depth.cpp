@@ -112,6 +112,8 @@ private:
 
 	double _min_height;	//Minima altura de target
 	double _max_height;	//Maxima altura de target
+	double _target_distance; //Distancia del target en metros
+	bool _close_range;
 
 public:
 
@@ -130,6 +132,8 @@ public:
 		nro_start = 0;
 		target_dists_idx_ = 0;
 		distractor_dists_idx_ = 0;
+		_target_distance = -1;
+		_close_range = false;
 
 		//feat_ext.init();
 
@@ -187,6 +191,7 @@ void clearNode()
 	target_dists_idx_ = 0;
 	distractor_dists_idx_ = 0;
 	target_dist_thr_ = target_dist_ref_;
+	_target_distance = -1;
 
 	prev_hist_features_target_.clear();
 	hist_features_target_.clear();
@@ -385,6 +390,12 @@ cv::Mat cropMask(cv::Mat &depth, Rect rect_target, double distance)
 
 void viewMaskedImage(cv::Mat &image, cv::Mat &mask, String nameWindow)
 {
+	// Si servicio no esta activo, no hacer nada
+	if (!activo)
+	{
+		return;
+	}
+
 	cv::Mat im = image.clone();
 	for (int r = 0; r < image.rows; r++)
 	{
@@ -398,7 +409,9 @@ void viewMaskedImage(cv::Mat &image, cv::Mat &mask, String nameWindow)
 			}
 		}
 	}
+
 	imshow(nameWindow, im);
+
 }
 
 
@@ -789,6 +802,28 @@ bool compareTargetHeight(double height)
 }
 
 
+bool targetIsClose(cv::Mat &depth)
+{
+	return false;
+	cv::Scalar value = cv::mean(depth);
+	double dist = value.val[0];
+
+	cout << "Mean distance: " << dist << endl;
+
+	if (_target_distance > 0.4)
+		return false;
+	/*
+	cv::Scalar value = cv::mean(depth);
+	double dist = value.val[0];
+
+	cout << "Mean distance: " << dist << endl;
+*/
+	if (dist > 0.4)
+		return false;
+
+	return true;
+}
+
 //void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_msgs::TrackArray::ConstPtr &tracks_msg, const opt_msgs::DetectionArray::ConstPtr &detections_msg, const stereo_msgs::DisparityImageConstPtr &disparity_msg)
 void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_msgs::TrackArray::ConstPtr &tracks_msg, const opt_msgs::DetectionArray::ConstPtr &detections_msg, const sensor_msgs::ImageConstPtr &depth_msg)
 {
@@ -836,6 +871,8 @@ void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_
 
 					track_target_msg = msg_track;
 
+					_target_distance = msg_track.distance;
+
 					cout << "Target encontrado: " << target_id_ << endl;
 
 					setTargetHeight(msg_track.height);	//altura del target
@@ -877,6 +914,8 @@ void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_
 		if (idx >= 0) //Si no se ha perdido el track
 		{
 			track_target_msg = track_array.tracks[idx];
+
+			_target_distance = track_target_msg.distance;
 
 			Rect r_target;
 			double target_dist;
@@ -934,8 +973,23 @@ void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_
 			{
 				cout << "Target perdido" << endl;
 				flag_perdido_recien = true;
+
+				_close_range = targetIsClose(depth);
 			}
-				
+
+			if (_close_range && targetIsClose(depth))
+			{
+				track_target_msg.id = curr_max_id_+1;
+				track_target_msg.x = 0.1;
+				track_target_msg.y = 0;
+				track_target_msg.height = (_min_height+_max_height)/2;
+				track_target_msg.confidence = 1;
+			}
+			else
+			{
+				_close_range = false;
+			}
+
 			for (int i = 0; i < tracks_msg->tracks.size(); i++)
 			{
 				opt_msgs::Track msg_track = tracks_msg->tracks[i];
@@ -1040,8 +1094,11 @@ void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_
 	}
 	pub.publish(track_target_msg);
 
-	cv::imshow("Follower", image);
-	cv::waitKey(30);
+	if (activo)
+	{		
+		cv::imshow("Follower", image);
+		cv::waitKey(30);	
+	}
 }
 
 
@@ -1073,6 +1130,11 @@ bool Active(opt_msgs::Onoff::Request  &req, opt_msgs::Onoff::Response &res)
 						_2,
 						_3, 
 						_4));
+
+		    	namedWindow("Follower"); // non-autosized
+		    	namedWindow("Positivo");
+				namedWindow("Negativo");
+				//startWindowThread();
 				
 				ROS_INFO_STREAM("Starting Follower. . . OK");
 			}
@@ -1099,6 +1161,11 @@ bool Active(opt_msgs::Onoff::Request  &req, opt_msgs::Onoff::Response &res)
 					sub_tracks_, 
 					sub_detect_, 
 					sub_disparity_));
+
+			/*destroyWindow("Follower");
+			destroyWindow("Positivo");
+			destroyWindow("Negativo");*/
+			destroyAllWindows();
 
 			ROS_INFO_STREAM(" Turning off . . . OK");
 		}
@@ -1179,12 +1246,12 @@ int main(int argc, char **argv)
 
 	ROS_INFO("Follower listo");
 
-	namedWindow("Follower");
+	/*namedWindow("Follower");
 	namedWindow("Positivo");
 	namedWindow("Negativo");
 	moveWindow("Positivo", 700,20);
 	moveWindow("Negativo", 900,20);
-	moveWindow("Follower", 20, 20);
+	moveWindow("Follower", 20, 20);*/
 
 
 
