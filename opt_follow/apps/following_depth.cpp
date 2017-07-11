@@ -1148,7 +1148,7 @@ bool Active(opt_msgs::Onoff::Request  &req, opt_msgs::Onoff::Response &res)
 		    	namedWindow("Follower"); // non-autosized
 		    	namedWindow("Positivo");
 				namedWindow("Negativo");
-				//startWindowThread();
+				startWindowThread();
 				
 				ROS_INFO_STREAM("Starting Follower. . . OK");
 			}
@@ -1180,6 +1180,7 @@ bool Active(opt_msgs::Onoff::Request  &req, opt_msgs::Onoff::Response &res)
 			destroyWindow("Positivo");
 			destroyWindow("Negativo");*/
 			destroyAllWindows();
+			//waitKey(1);
 
 			ROS_INFO_STREAM(" Turning off . . . OK");
 		}
