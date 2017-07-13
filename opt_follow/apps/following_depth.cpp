@@ -1096,6 +1096,7 @@ void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_
 					{
 						if (abs(dist_target_track2) > 3*target_dist_thr_)
 						{
+							cout << "Added new distractor" << endl;
 							//imshow("agrega", blob_im);
 							hist_distractors_.push_back(hist_track);
 							addDist(distractor_dists_, dist_target_track2, 80, &distractor_dists_idx_);
@@ -1108,11 +1109,20 @@ void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_
 				}
 			}
 		}
+
+		// Indicar si esta muy cerca.
+		if (_close_range)
+		{
+			char str[14];
+			sprintf(str,"Close Target");
+			putText(image, str, Point2f(100,100), FONT_HERSHEY_PLAIN, 2,  Scalar(0,0,255,255), 4);
+		}
+
 	}
 
 	double aux_time = ros::Time::now().toSec();
 
-	if (aux_time - time_ > 0.05) //0.1=1/10 [s] = 10 [Hz]
+	if (aux_time - time_ > 0.05) // 0.1 [s] => 10 [Hz], 0.05 [s] => 20 [Hz]
 	{
 		pub.publish(track_target_msg);
 		time_ = aux_time;
