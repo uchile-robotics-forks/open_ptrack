@@ -1,7 +1,7 @@
 #include "open_ptrack/opt_follow/FeatureExtractor.h"
 
 unsigned int lowThreshold_ = 50; // threshold canny para edgeDensity
-const int _nFeat = 9;
+const int _nFeat = 8;
 double factor_;
 
 FeatureExtractor::FeatureExtractor ()
