@@ -1100,9 +1100,9 @@ void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_
 					}
 
 					// Si no hay muchos distractores, agregar
-					if (hist_distractors_.size() < max_distractors_ || true)
+					if (hist_distractors_.size() < max_distractors_ && false)
 					{
-						if (abs(dist_target_track2) > 3*target_dist_thr_)
+						if (abs(dist_target_track2) > 0.5)
 						{
 							cout << "Added new distractor" << endl;
 							//imshow("agrega", blob_im);

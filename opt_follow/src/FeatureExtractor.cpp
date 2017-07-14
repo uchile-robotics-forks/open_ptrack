@@ -1,7 +1,7 @@
 #include "open_ptrack/opt_follow/FeatureExtractor.h"
 
 unsigned int lowThreshold_ = 50; // threshold canny para edgeDensity
-const int _nFeat = 9;
+const int _nFeat = 8;
 double factor_;
 
 FeatureExtractor::FeatureExtractor ()
@@ -545,13 +545,13 @@ void FeatureExtractor::getFeatures(cv::Mat &image, vector<Histogram> &histograms
 
 	Histogram hist1, hist2;
 	histHS(image, histograms.at(0)); //histograma HS
-	histHSV(image, hist1, hist2, histograms.at(1));
-	histograms.at(2) = (CSLBP(gray));
+	//histHSV(image, hist1, hist2, histograms.at(1));
+	histograms.at(1) = (CSLBP(gray));
 
 	//histHSV(image, histograms.at(0), histograms.at(1), histograms.at(2));//cout << "init secondDerivative:" << endl;
-	secondDerivative(gray, histograms.at(3), histograms.at(4));//cout << "init edgeDensity:" << endl;
-	histograms.at(5) = (edgeDensity(gray));//cout << "init edgeDescriptor:" << endl;
-	histograms.at(6) = (edgeDescriptor(gray));//cout << "init CSLBP:" << endl;
+	secondDerivative(gray, histograms.at(2), histograms.at(3));//cout << "init edgeDensity:" << endl;
+	histograms.at(4) = (edgeDensity(gray));//cout << "init edgeDescriptor:" << endl;
+	histograms.at(5) = (edgeDescriptor(gray));//cout << "init CSLBP:" << endl;
 	//histograms.at(7) = (CSLBP(gray));
 
 	Rect r_head;
@@ -564,8 +564,8 @@ void FeatureExtractor::getFeatures(cv::Mat &image, vector<Histogram> &histograms
 		cv::Mat aux_image = image(r_head).clone();
 		cv::Mat aux_gray = gray(r_head).clone();
 
-		histHS(aux_image, histograms.at(7));
-		histograms.at(8) = (CSLBP(aux_gray));
+		histHS(aux_image, histograms.at(6));
+		histograms.at(7) = (CSLBP(aux_gray));
 		
 		_curr_mask = aux_mask;
 	}
