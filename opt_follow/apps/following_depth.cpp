@@ -106,6 +106,7 @@ private:
 	int target_frames; // numero de frames diferentes que recuerda
 
 	vector< vector<Histogram> > old_features; // size -> node param = 3
+	
 
 	vector<double> target_dists_;
 	int target_dists_idx_;
@@ -120,6 +121,8 @@ private:
 	double time_;
 
 public:
+
+	int n_old_features;
 
 	explicit FollowerNode(const ros::NodeHandle& nh):
 	node_(nh)
@@ -152,6 +155,7 @@ public:
 		
 		node_.param("target_frames", target_frames, 8);
 		old_features.resize(target_frames);
+		n_old_features = 0;
 
 		double training_factor;
 		node_.param("training_factor", training_factor, 0.125); // 1/8
@@ -486,13 +490,22 @@ void updateDistractorList(cv::Mat &img, vector<Rect> &r_detections, Rect &r_targ
 	// Si una muestra del target es lo suficientemente diferente a la anterior, almacenarla en old_features
 	if (old_features.size() > 0)
 	{
-		if (feat_ext.compareArrayHist(hist_features_target_, old_features.at(0)) > target_max_dist_thr_)
+		bool is_different = true;
+		// Busca en todas las anteriores si hay alguna muestra similar de acuerdo al umbral adaptivo. Si no hay ninguna similar, se agrega a old_features.
+		for (int old = 0; old < old_features.size(); old++)
+		{
+			if (feat_ext.compareArrayHist(hist_features_target_, old_features.at(old)) < target_dist_thr_) //<target_max_dist_thr_
+				is_different = false;
+		}
+		//if (feat_ext.compareArrayHist(hist_features_target_, old_features.at(0)) > target_max_dist_thr_)
+		if (is_different)
 		{
 			for (int i = old_features.size(); i > 1; i--)
 			{
 				old_features.at(i-1) = old_features.at(i-2);
 			}
 			old_features.at(0) = hist_features_target_;
+			n_old_features++;
 		}
 	}
 
@@ -1303,6 +1316,7 @@ int main(int argc, char **argv)
 	ros::spin();
 
 	FN.printFeatureWeights();
+	cout << "Nro old features: " << FN.n_old_features << endl;
 
 
 	return 0;
