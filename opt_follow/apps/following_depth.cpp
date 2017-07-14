@@ -1028,7 +1028,7 @@ void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_
 				// No analiza si la altura no es similar a la del target
 				if (compareTargetHeight(msg_track.height) == false)
 				{
-					cout << "Alturas distintas: " << msg_track.height << " no pertenece a [" << _min_height << ", " << _max_height << "]" << endl;
+					//cout << "Alturas distintas: " << msg_track.height << " no pertenece a [" << _min_height << ", " << _max_height << "]" << endl;
 					continue;
 				}
 
