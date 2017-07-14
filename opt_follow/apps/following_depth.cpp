@@ -97,6 +97,8 @@ private:
 	double target_dist_thr_; // se ajusta a target_dist_ref_, pero se va adaptando
 	double target_max_dist_thr_;
 
+	double min_confidence_; // confidencia minima que debe tener el target para ser considerado persona
+
 	bool feat_only_start; // node param = false
 	int nro_only_start;	// node param = 5; numero de frames para extraer caract.
 	int nro_start;
@@ -131,6 +133,7 @@ public:
 		set_camera_parameters_ = false;
 		flag_perdido_recien = false;
 		target_max_dist_thr_ = 0.15;
+		min_confidence_ = 1.4;
 		nro_start = 0;
 		target_dists_idx_ = 0;
 		distractor_dists_idx_ = 0;
@@ -147,7 +150,7 @@ public:
 		
 		node_.param("nro_only_start", nro_only_start, 5);
 		
-		node_.param("target_frames", target_frames, 3);
+		node_.param("target_frames", target_frames, 8);
 		old_features.resize(target_frames);
 
 		double training_factor;
@@ -342,10 +345,14 @@ void getBbox(opt_msgs::Track &msg_track, Rect &rect)
 cv::Mat cropImage(cv::Mat &image, Rect &rect)
 {
 	// Achicar rect
-	rect.x = rect.x + 0.1*rect.width;
+	/*rect.x = rect.x + 0.1*rect.width;
 	rect.y = rect.y + 0.1*rect.height;
 	rect.width = 0.8*rect.width;
-	rect.height = 0.8*rect.height;
+	rect.height = 0.8*rect.height;*/
+	rect.x = rect.x;
+	rect.y = rect.y;
+	rect.width = rect.width;
+	rect.height = rect.height;
 
 	int cols = image.cols;
 	int rows = image.rows;
@@ -377,7 +384,7 @@ cv::Mat cropMask(cv::Mat &depth, Rect rect_target, double distance)
 		for (int c = 0; c < mask.cols; c++)
 		{
 			double curr_dist = (double) cropped_depth.at<float>(r,c);
-			if ((curr_dist < distance + 0.3) && (curr_dist > distance - 0.3))
+			if ((curr_dist < distance + 0.35) && (curr_dist > distance - 0.35))
 			{
 				mask.at<uchar>(r,c) = 1;
 			}
@@ -875,7 +882,7 @@ void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_
 		{
 			opt_msgs::Track msg_track = tracks_msg->tracks[i];
 			cout << "distancia: " << msg_track.distance << " confidencia: " << msg_track.confidence << endl;
-			if (msg_track.distance < distance_thr && msg_track.confidence > 0.8) //se define por una distancia minima
+			if (msg_track.distance < distance_thr && msg_track.confidence > min_confidence_) //se define por una distancia minima
 			{
 				//TODO: almacenar informacion (crear clase Target con caracteristicas, cara, etc.)
 
@@ -891,6 +898,7 @@ void callbackNoFeatCarac(const sensor_msgs::ImageConstPtr &image_msg, const opt_
 					_target_distance = msg_track.distance;
 
 					cout << "Target encontrado: " << target_id_ << endl;
+					cout << "Confidencia: " << msg_track.confidence << endl;
 
 					setTargetHeight(msg_track.height);	//altura del target
 
