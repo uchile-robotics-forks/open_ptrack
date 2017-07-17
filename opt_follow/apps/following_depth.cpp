@@ -494,7 +494,7 @@ void updateDistractorList(cv::Mat &img, vector<Rect> &r_detections, Rect &r_targ
 		// Busca en todas las anteriores si hay alguna muestra similar de acuerdo al umbral adaptivo. Si no hay ninguna similar, se agrega a old_features.
 		for (int old = 0; old < old_features.size(); old++)
 		{
-			if (feat_ext.compareArrayHist(hist_features_target_, old_features.at(old)) < target_dist_thr_) //<target_max_dist_thr_
+			if (feat_ext.compareArrayHist(hist_features_target_, old_features.at(old)) < target_max_dist_thr_)//0.8*target_dist_thr_) //<target_max_dist_thr_
 				is_different = false;
 		}
 		//if (feat_ext.compareArrayHist(hist_features_target_, old_features.at(0)) > target_max_dist_thr_)
@@ -571,7 +571,7 @@ void updateFeatureWeights()
 			average_dist = average_dist / hist_distractors_.size();
 		else
 		{
-			if (i == 0 || i == 7 || i == 8) //HS full, HS head, CSLBP head
+			if (i == 0 || i == 6 || i == 7) //HS full, HS head, CSLBP head
 				average_dist = 1;
 			else
 				average_dist = 0.5;//0.5

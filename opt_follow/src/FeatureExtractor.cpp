@@ -95,7 +95,7 @@ void FeatureExtractor::histHS(cv::Mat &input_bgr, Histogram &hist_hs)
 	cv::Mat hsv;
 	cv::cvtColor(input_bgr, hsv, CV_BGR2HSV);
 
-	int hbins = 18, sbins = 16;
+	int hbins = 9, sbins = 10;//int hbins = 18, sbins = 16;
 	int histSize[] = {hbins, sbins};
 	float hrange[] = {0, 180};
 	float srange[] = {0, 256};
@@ -482,7 +482,7 @@ void FeatureExtractor::secondDerivative(cv::Mat &image_gray, Histogram &hist_x, 
 	
 	//int bins = 64; // bins of secondDerivatives
 	//float range[] = {-6*255, 6*255+1};
-	int bins = 32; // bins of secondDerivatives
+	int bins = 32; // bins of secondDerivatives //int bins = 32;
 	float range[] = {-255*0.05, 255*0.05+1};
 	const float* ranges[] = {range};
 
