@@ -35,7 +35,7 @@ if [ "$UBUNTU_VERSION" = "$RARING" ]; then
   sudo mv ~/libfreenect/libfreenect/wrappers/c_sync/libfreenect_sync.h /opt/ros/hydro/include/libfreenect/libfreenect_sync.h
 fi
 
-cd ~/catkin_ws/src
+cd ~/home/bender/uchile_ws/pkgs/forks_ws
 git clone https://github.com/ros-drivers/freenect_stack.git
 
 sudo rm -R ~/libfreenect
