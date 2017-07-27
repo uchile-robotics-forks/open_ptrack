@@ -95,7 +95,7 @@ void FeatureExtractor::histHS(cv::Mat &input_bgr, Histogram &hist_hs)
 	cv::Mat hsv;
 	cv::cvtColor(input_bgr, hsv, CV_BGR2HSV);
 
-	int hbins = 9, sbins = 10;//int hbins = 18, sbins = 16;
+	int hbins = 16, sbins = 12;//int hbins = 18, sbins = 16;
 	int histSize[] = {hbins, sbins};
 	float hrange[] = {0, 180};
 	float srange[] = {0, 256};
@@ -235,7 +235,7 @@ Histogram FeatureExtractor::edgeDensity(Mat &image_gray)
 	edgeDensityImage(image_gray, edge_density);
 	
 	cv::Mat hist;
-	int bins = 16; // bins of edgeDensity {0,1,2,...,31} //int bins = 32;
+	int bins = 32; // bins of edgeDensity {0,1,2,...,31} //int bins = 32;
 	float range[] = {0, 32};
 	const float* ranges[] = {range};
 
@@ -352,7 +352,7 @@ Histogram FeatureExtractor::CSLBP(cv::Mat &input_gray)
 	}
 
 	// Histogram
-	int bins = 8; // bins of csLBP //int bins = 16;
+	int bins = 16; // bins of csLBP //int bins = 16;
 	float range[] = {0, 16};
 	const float* ranges[] = {range};
 
@@ -482,8 +482,8 @@ void FeatureExtractor::secondDerivative(cv::Mat &image_gray, Histogram &hist_x, 
 	
 	//int bins = 64; // bins of secondDerivatives
 	//float range[] = {-6*255, 6*255+1};
-	int bins = 32; // bins of secondDerivatives //int bins = 32;
-	float range[] = {-255*0.05, 255*0.05+1};
+	int bins = 64; // bins of secondDerivatives //int bins = 32;
+	float range[] = {-255*0.25, 255*0.25+1};
 	const float* ranges[] = {range};
 
 	cv::Mat ddx_hist, ddy_hist;	
